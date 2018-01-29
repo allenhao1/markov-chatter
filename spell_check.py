@@ -1,6 +1,9 @@
 from string import ascii_lowercase as alphabet
 import config
 import os
+import json
+import heapq
+from preprocess import load
 
 
 def possible_errors(word, english_words):
@@ -19,26 +22,31 @@ def possible_errors(word, english_words):
 			# Add possible transpositions
 	return possible
 
-def load_dict(all_words, txt_file):
-	try:
-		with open(txt_file, 'r') as f:
-			lines = f.readlines()
-			for line in lines:
-				all_words[line.strip()] = 0.0
-	except:
-		print 'error loading words'
-		exit()
+def topK(elements, k):
+	priority_q = []
+	for el in elements:
+		if len(priority_q) < k:
+			heapq.heappush(priority_q, el)
+		elif el[0] > priority_q[0][0]: # Check to replace smallest value
+			heapq.heappushpop(priority_q, el)
+	return sorted(priority_q, key=lambda x: x[0])
+
 
 def spell_check(word, english_words):
 	if word not in english_words:
-		return possible_errors(word, english_words)
+		possible = [(english_words[word], word) for word in possible_errors(word, english_words)]
+		num_results = 5
+		return sorted(topK(possible, num_results), key=lambda x:x[0])
 	else:
-		return 'The word is properly spelled'
+		return 'The word is properly spelled \n ________'
 
 if __name__ == "__main__":
-	english_words = {}
-	load_dict(english_words, os.path.join(config.PROCESSED, 'wordsEn.txt'))
+	dict_file = os.path.join(config.PROCESSED, config.WORD_DICT)
+	# if not os.path.exists(dict_file):
+		# load.english_words()
+	english_words = json.load(open(dict_file))
 	while True:
 		print "Type in a misspelled word"
+		# Possibly limit all words to greater than 3 letters?
 		word = raw_input().lower()
 		print spell_check(word, english_words)
